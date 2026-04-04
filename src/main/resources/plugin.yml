@@ -1,0 +1,6 @@
+name: ProjectLiminal
+version: '$version'
+
+main: dev.skebzy.projectLiminal.ProjectLiminal
+api-version: '1.21.11'
+load: POSTWORLD
