@@ -1,8 +1,8 @@
 package dev.skebzy.projectLiminal.levels.level0;
 
-import dev.skebzy.projectLiminal.levels.engine.paint.RoomPainter;
-import dev.skebzy.projectLiminal.levels.engine.paint.decorators.LightPlacer;
-import dev.skebzy.projectLiminal.levels.engine.paint.decorators.PillarDecorator;
+import dev.skebzy.projectLiminal.levels.engine.paint.features.LightPlacer;
+import dev.skebzy.projectLiminal.levels.engine.paint.features.PillarDecorator;
+import dev.skebzy.projectLiminal.levels.engine.paint.surfaces.RoomPainter;
 import org.bukkit.generator.ChunkGenerator;
 
 public class Level0 {

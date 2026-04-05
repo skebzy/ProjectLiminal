@@ -1,4 +1,4 @@
-package dev.skebzy.projectLiminal.levels.engine.layout.strategies;
+package dev.skebzy.projectLiminal.levels.engine.layout.grid;
 
 public final class GridRoomMath {
 

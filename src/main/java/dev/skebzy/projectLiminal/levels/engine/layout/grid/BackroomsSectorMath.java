@@ -1,4 +1,4 @@
-package dev.skebzy.projectLiminal.levels.engine.layout.strategies;
+package dev.skebzy.projectLiminal.levels.engine.layout.grid;
 
 import dev.skebzy.projectLiminal.levels.engine.math.CellMath;
 import dev.skebzy.projectLiminal.levels.engine.noise.NoiseField;

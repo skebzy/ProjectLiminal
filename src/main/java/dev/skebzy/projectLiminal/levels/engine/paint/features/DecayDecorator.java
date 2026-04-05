@@ -1,4 +1,4 @@
-package dev.skebzy.projectLiminal.levels.engine.paint.decorators;
+package dev.skebzy.projectLiminal.levels.engine.paint.features;
 
 import dev.skebzy.projectLiminal.levels.engine.palette.Palette;
 import org.bukkit.Material;

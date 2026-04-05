@@ -14,7 +14,12 @@ public class Level0Palette implements Palette {
 
     @Override
     public Material wallTrim() {
-        return Material.BIRCH_PLANKS;
+        return Material.YELLOW_WOOL;
+    }
+
+    @Override
+    public Material wallAccent() {
+        return Material.BAMBOO_MOSAIC;
     }
 
     @Override

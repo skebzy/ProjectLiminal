@@ -11,8 +11,22 @@ public interface Palette {
         return wall();
     }
 
+    default Material wallAccent() {
+        return wall();
+    }
+
     Material floor();
+
+    default Material floorEdge() {
+        return floor();
+    }
+
     Material ceiling();
+
+    default Material ceilingEdge() {
+        return ceiling();
+    }
+
     Material light();
 
     default BlockData lightBlockData() {
