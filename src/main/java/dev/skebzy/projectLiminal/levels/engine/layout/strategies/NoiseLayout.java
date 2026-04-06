@@ -23,19 +23,25 @@ public class NoiseLayout implements LayoutStrategy {
         int sectorX = BackroomsSectorMath.sector(x);
         int sectorZ = BackroomsSectorMath.sector(z);
 
-        if (cachedPlan == null
-                || cachedSectorX != sectorX
-                || cachedSectorZ != sectorZ
-                || cachedSeed != seed) {
-            cachedSectorX = sectorX;
-            cachedSectorZ = sectorZ;
-            cachedSeed = seed;
-            cachedPlan = BackroomsRoomGrid.plan(sectorX, sectorZ, seed);
-        }
+        refreshCache(sectorX, sectorZ, seed);
 
         return cachedPlan.isOpenLocal(
                 BackroomsSectorMath.local(x),
                 BackroomsSectorMath.local(z)
         );
+    }
+
+    private void refreshCache(int sectorX, int sectorZ, long seed) {
+        if (cachedPlan != null
+                && cachedSectorX == sectorX
+                && cachedSectorZ == sectorZ
+                && cachedSeed == seed) {
+            return;
+        }
+
+        cachedSectorX = sectorX;
+        cachedSectorZ = sectorZ;
+        cachedSeed = seed;
+        cachedPlan = BackroomsRoomGrid.plan(sectorX, sectorZ, seed);
     }
 }

@@ -8,6 +8,12 @@ public final class BackroomsSectorMath {
     public static final int SECTOR_SIZE = 24;
     public static final int MIN_DIVIDER_OFFSET = 6;
     public static final int MAX_DIVIDER_OFFSET = SECTOR_SIZE - 7;
+    private static final int DIVIDER_RANGE = MAX_DIVIDER_OFFSET - MIN_DIVIDER_OFFSET + 1;
+    private static final int MIX_SHIFT = 33;
+    private static final long X_MIX = 0x9E3779B97F4A7C15L;
+    private static final long Z_MIX = 0xC2B2AE3D27D4EB4FL;
+    private static final long FIRST_MIX_MULTIPLIER = 0xFF51AFD7ED558CCDL;
+    private static final long SECOND_MIX_MULTIPLIER = 0xC4CEB9FE1A85EC53L;
 
     private static final long DIVIDER_SALT = 0x61C88647L;
     private static final long BLACKOUT_SALT = 0x4C1F3A25L;
@@ -58,19 +64,19 @@ public final class BackroomsSectorMath {
                 sectorZ,
                 seed ^ DIVIDER_SALT,
                 salt,
-                MAX_DIVIDER_OFFSET - MIN_DIVIDER_OFFSET + 1
+                DIVIDER_RANGE
         );
     }
 
     private static int mix(int x, int z, long seed, long salt) {
         long mixed = seed ^ salt;
-        mixed ^= x * 0x9E3779B97F4A7C15L;
-        mixed ^= z * 0xC2B2AE3D27D4EB4FL;
-        mixed ^= (mixed >>> 33);
-        mixed *= 0xFF51AFD7ED558CCDL;
-        mixed ^= (mixed >>> 33);
-        mixed *= 0xC4CEB9FE1A85EC53L;
-        mixed ^= (mixed >>> 33);
+        mixed ^= x * X_MIX;
+        mixed ^= z * Z_MIX;
+        mixed ^= (mixed >>> MIX_SHIFT);
+        mixed *= FIRST_MIX_MULTIPLIER;
+        mixed ^= (mixed >>> MIX_SHIFT);
+        mixed *= SECOND_MIX_MULTIPLIER;
+        mixed ^= (mixed >>> MIX_SHIFT);
         return (int) mixed;
     }
 }

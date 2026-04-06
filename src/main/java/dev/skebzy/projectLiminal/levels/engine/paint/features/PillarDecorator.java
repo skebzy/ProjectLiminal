@@ -5,6 +5,26 @@ import org.bukkit.generator.ChunkGenerator;
 
 public class PillarDecorator {
 
+    private static final int CHUNK_SIZE = 16;
+    private static final int CHUNK_LAST = CHUNK_SIZE - 1;
+    private static final int REGION_SIZE = 18;
+    private static final int REGION_PADDING = 4;
+    private static final int PILLAR_ROLL = 100;
+    private static final int PILLAR_RATE = 24;
+    private static final int MIN_WIDTH = 1;
+    private static final int WIDTH_ROLL = 2;
+    private static final int INTERIOR_MIN = 1;
+    private static final int INTERIOR_MAX = CHUNK_SIZE - 2;
+    private static final int FLOOR_Y = 1;
+    private static final int CEILING_GAP = 2;
+    private static final int SPAWN_SAFE_MIN = 4;
+    private static final int SPAWN_SAFE_MAX = 12;
+    private static final int HASH_MIX_SHIFT = 33;
+    private static final long REGION_X_MIX = 0x9E3779B97F4A7C15L;
+    private static final long REGION_Z_MIX = 0xC2B2AE3D27D4EB4FL;
+    private static final long FIRST_MIX_MULTIPLIER = 0xFF51AFD7ED558CCDL;
+    private static final long SECOND_MIX_MULTIPLIER = 0xC4CEB9FE1A85EC53L;
+
     public static void apply(ChunkGenerator.ChunkData chunk,
                              int chunkX,
                              int chunkZ,
@@ -13,29 +33,32 @@ public class PillarDecorator {
                              Palette palette) {
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
-        int regionSize = 18;
-        int minRegionX = Math.floorDiv(baseX, regionSize) - 1;
-        int maxRegionX = Math.floorDiv(baseX + 15, regionSize) + 1;
-        int minRegionZ = Math.floorDiv(baseZ, regionSize) - 1;
-        int maxRegionZ = Math.floorDiv(baseZ + 15, regionSize) + 1;
+        int minRegionX = Math.floorDiv(baseX, REGION_SIZE) - 1;
+        int maxRegionX = Math.floorDiv(baseX + CHUNK_LAST, REGION_SIZE) + 1;
+        int minRegionZ = Math.floorDiv(baseZ, REGION_SIZE) - 1;
+        int maxRegionZ = Math.floorDiv(baseZ + CHUNK_LAST, REGION_SIZE) + 1;
 
         for (int regionX = minRegionX; regionX <= maxRegionX; regionX++) {
             for (int regionZ = minRegionZ; regionZ <= maxRegionZ; regionZ++) {
-                if (hash(regionX, regionZ, seed, 3, 100) >= 24) {
+                if (hash(regionX, regionZ, seed, 3, PILLAR_ROLL) >= PILLAR_RATE) {
                     continue;
                 }
 
-                int worldX = regionX * regionSize + 4 + hash(regionX, regionZ, seed, 7, regionSize - 8);
-                int worldZ = regionZ * regionSize + 4 + hash(regionX, regionZ, seed, 11, regionSize - 8);
+                int worldX = regionX * REGION_SIZE
+                        + REGION_PADDING
+                        + hash(regionX, regionZ, seed, 7, REGION_SIZE - (REGION_PADDING * 2));
+                int worldZ = regionZ * REGION_SIZE
+                        + REGION_PADDING
+                        + hash(regionX, regionZ, seed, 11, REGION_SIZE - (REGION_PADDING * 2));
 
-                if (worldX < baseX || worldX > baseX + 15 || worldZ < baseZ || worldZ > baseZ + 15) {
+                if (worldX < baseX || worldX > baseX + CHUNK_LAST || worldZ < baseZ || worldZ > baseZ + CHUNK_LAST) {
                     continue;
                 }
 
                 int localX = worldX - baseX;
                 int localZ = worldZ - baseZ;
-                int width = 1 + hash(regionX, regionZ, seed, 13, 2);
-                boolean extendX = hash(regionX, regionZ, seed, 17, 2) == 0;
+                int width = MIN_WIDTH + hash(regionX, regionZ, seed, 13, WIDTH_ROLL);
+                boolean extendX = hash(regionX, regionZ, seed, 17, WIDTH_ROLL) == 0;
 
                 if (intersectsSpawnSafety(chunkX, chunkZ, localX, localZ, width, extendX)) {
                     continue;
@@ -69,7 +92,7 @@ public class PillarDecorator {
         for (int offset = 0; offset < width; offset++) {
             int x = extendX ? localX + offset : localX;
             int z = extendX ? localZ : localZ + offset;
-            if (x >= 4 && x < 12 && z >= 4 && z < 12) {
+            if (x >= SPAWN_SAFE_MIN && x < SPAWN_SAFE_MAX && z >= SPAWN_SAFE_MIN && z < SPAWN_SAFE_MAX) {
                 return true;
             }
         }
@@ -87,15 +110,15 @@ public class PillarDecorator {
             int x = extendX ? localX + offset : localX;
             int z = extendX ? localZ : localZ + offset;
 
-            if (x < 1 || x > 14 || z < 1 || z > 14) {
+            if (x < INTERIOR_MIN || x > INTERIOR_MAX || z < INTERIOR_MIN || z > INTERIOR_MAX) {
                 return false;
             }
 
-            if (chunk.getType(x, 1, z) != org.bukkit.Material.AIR) {
+            if (chunk.getType(x, FLOOR_Y, z) != org.bukkit.Material.AIR) {
                 return false;
             }
 
-            if (chunk.getType(x, height - 2, z) != org.bukkit.Material.AIR) {
+            if (chunk.getType(x, height - CEILING_GAP, z) != org.bukkit.Material.AIR) {
                 return false;
             }
         }
@@ -105,13 +128,13 @@ public class PillarDecorator {
 
     private static int hash(int x, int z, long seed, long salt, int bound) {
         long mixed = seed ^ salt;
-        mixed ^= x * 0x9E3779B97F4A7C15L;
-        mixed ^= z * 0xC2B2AE3D27D4EB4FL;
-        mixed ^= (mixed >>> 33);
-        mixed *= 0xFF51AFD7ED558CCDL;
-        mixed ^= (mixed >>> 33);
-        mixed *= 0xC4CEB9FE1A85EC53L;
-        mixed ^= (mixed >>> 33);
+        mixed ^= x * REGION_X_MIX;
+        mixed ^= z * REGION_Z_MIX;
+        mixed ^= (mixed >>> HASH_MIX_SHIFT);
+        mixed *= FIRST_MIX_MULTIPLIER;
+        mixed ^= (mixed >>> HASH_MIX_SHIFT);
+        mixed *= SECOND_MIX_MULTIPLIER;
+        mixed ^= (mixed >>> HASH_MIX_SHIFT);
         return Math.floorMod((int) mixed, bound);
     }
 }

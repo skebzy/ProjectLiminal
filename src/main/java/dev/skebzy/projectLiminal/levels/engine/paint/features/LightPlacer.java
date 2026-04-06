@@ -9,8 +9,22 @@ import org.bukkit.generator.ChunkGenerator;
 
 public class LightPlacer {
 
+    private static final int CHUNK_SIZE = 16;
+    private static final int CHUNK_LAST = CHUNK_SIZE - 1;
+    private static final int ROOM_MIN_SPAN = 5;
     private static final int ROOM_MARGIN = 2;
     private static final int HALLWAY_MARGIN = 1;
+    private static final int HALLWAY_FIXTURE_SPACING = 6;
+    private static final int ROOM_FIXTURE_SPACING = 6;
+    private static final int LARGE_ROOM_FIXTURE_SPACING = 7;
+    private static final int MAX_FIXTURES_PER_AXIS = 8;
+    private static final int LONG_HALL = 18;
+    private static final int LARGE_ROOM = 20;
+    private static final int SHORT_LIGHT = 2;
+    private static final int LONG_LIGHT = 3;
+    private static final int MID_LANE_BREAK = 12;
+    private static final int WIDE_LANE_BREAK = 20;
+    private static final int AIR_CHECK_Y = 2;
 
     public static void apply(ChunkGenerator.ChunkData chunk,
                              int chunkX,
@@ -21,9 +35,9 @@ public class LightPlacer {
         int baseX = chunkX << 4;
         int baseZ = chunkZ << 4;
         int minSectorX = BackroomsSectorMath.sector(baseX) - 1;
-        int maxSectorX = BackroomsSectorMath.sector(baseX + 15) + 1;
+        int maxSectorX = BackroomsSectorMath.sector(baseX + CHUNK_LAST) + 1;
         int minSectorZ = BackroomsSectorMath.sector(baseZ) - 1;
-        int maxSectorZ = BackroomsSectorMath.sector(baseZ + 15) + 1;
+        int maxSectorZ = BackroomsSectorMath.sector(baseZ + CHUNK_LAST) + 1;
         BlockData lightBlock = palette.lightBlockData();
 
         for (int sectorX = minSectorX; sectorX <= maxSectorX; sectorX++) {
@@ -47,7 +61,7 @@ public class LightPlacer {
                                           int sectorZ) {
         BackroomsRoomGrid.SectorPlan plan = BackroomsRoomGrid.plan(sectorX, sectorZ, seed);
         for (BackroomsRoomGrid.RoomRegion room : plan.rooms()) {
-            if (room.width() < 5 || room.length() < 5) {
+            if (room.width() < ROOM_MIN_SPAN || room.length() < ROOM_MIN_SPAN) {
                 continue;
             }
 
@@ -56,13 +70,12 @@ public class LightPlacer {
                 continue;
             }
 
-            long signature = roomSignature(room, seed);
             if (room.hallwayLike()) {
                 placeHallwayLights(chunk, baseX, baseZ, height, lightBlock, usableArea);
                 continue;
             }
 
-            placeRoomLights(chunk, baseX, baseZ, height, lightBlock, usableArea, signature);
+            placeRoomLights(chunk, baseX, baseZ, height, lightBlock, usableArea);
         }
     }
 
@@ -74,12 +87,12 @@ public class LightPlacer {
                                            BackroomsRoomGrid.RoomRegion room) {
         boolean horizontal = room.width() >= room.length();
         int majorSpan = horizontal ? room.width() : room.length();
-        int fixtureCount = fixtureCount(majorSpan, 6, 8);
+        int fixtureCount = fixtureCount(majorSpan, HALLWAY_FIXTURE_SPACING, MAX_FIXTURES_PER_AXIS);
         int[] majorCenters = horizontal
                 ? distributedCenters(room.minX(), room.maxX(), fixtureCount)
                 : distributedCenters(room.minZ(), room.maxZ(), fixtureCount);
         int minorCenter = horizontal ? room.centerZ() : room.centerX();
-        int fixtureLength = majorSpan >= 18 ? 3 : 2;
+        int fixtureLength = majorSpan >= LONG_HALL ? LONG_LIGHT : SHORT_LIGHT;
 
         if (horizontal) {
             for (int majorCenter : majorCenters) {
@@ -98,13 +111,16 @@ public class LightPlacer {
                                         int baseZ,
                                         int height,
                                         BlockData lightBlock,
-                                        BackroomsRoomGrid.RoomRegion room,
-                                        long signature) {
+                                        BackroomsRoomGrid.RoomRegion room) {
         boolean horizontal = room.width() >= room.length();
         int majorSpan = horizontal ? room.width() : room.length();
-        int laneCount = laneCount(room, signature);
-        int fixtureCount = fixtureCount(majorSpan, majorSpan >= 20 ? 7 : 6, 8);
-        int fixtureLength = majorSpan >= 20 ? 3 : 2;
+        int laneCount = laneCount(room);
+        int fixtureCount = fixtureCount(
+                majorSpan,
+                majorSpan >= LARGE_ROOM ? LARGE_ROOM_FIXTURE_SPACING : ROOM_FIXTURE_SPACING,
+                MAX_FIXTURES_PER_AXIS
+        );
+        int fixtureLength = majorSpan >= LARGE_ROOM ? LONG_LIGHT : SHORT_LIGHT;
 
         int[] laneCenters = horizontal
                 ? distributedCenters(room.minZ(), room.maxZ(), laneCount)
@@ -145,12 +161,12 @@ public class LightPlacer {
         }
     }
 
-    private static int laneCount(BackroomsRoomGrid.RoomRegion room, long signature) {
+    private static int laneCount(BackroomsRoomGrid.RoomRegion room) {
         int minorSpan = Math.min(room.width(), room.length());
-        if (minorSpan >= 20) {
+        if (minorSpan >= WIDE_LANE_BREAK) {
             return 3;
         }
-        if (minorSpan >= 12) {
+        if (minorSpan >= MID_LANE_BREAK) {
             return 2;
         }
         return 1;
@@ -200,13 +216,13 @@ public class LightPlacer {
                                    BlockData lightBlock,
                                    int worldX,
                                    int worldZ) {
-        if (worldX < baseX || worldX > baseX + 15 || worldZ < baseZ || worldZ > baseZ + 15) {
+        if (worldX < baseX || worldX > baseX + CHUNK_LAST || worldZ < baseZ || worldZ > baseZ + CHUNK_LAST) {
             return;
         }
 
         int localX = worldX - baseX;
         int localZ = worldZ - baseZ;
-        if (chunk.getType(localX, height - 2, localZ) != Material.AIR) {
+        if (chunk.getType(localX, height - AIR_CHECK_Y, localZ) != Material.AIR) {
             return;
         }
 
@@ -224,14 +240,5 @@ public class LightPlacer {
 
     private static int clamp(int value, int min, int max) {
         return Math.max(min, Math.min(max, value));
-    }
-
-    private static long roomSignature(BackroomsRoomGrid.RoomRegion room, long seed) {
-        long signature = seed;
-        signature ^= room.minX() * 73428767L;
-        signature ^= room.minZ() * 912931L;
-        signature ^= room.width() * 19349663L;
-        signature ^= room.length() * 83492791L;
-        return signature;
     }
 }

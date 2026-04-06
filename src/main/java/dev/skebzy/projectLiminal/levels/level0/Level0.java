@@ -8,6 +8,9 @@ import org.bukkit.generator.ChunkGenerator;
 public class Level0 {
 
     private static final int SIZE = 16;
+    private static final int SPAWN_MIN = 4;
+    private static final int SPAWN_MAX = 12;
+    private static final int FLOOR_CLEARANCE = 1;
     private static final Level0Palette PALETTE = new Level0Palette();
 
     public static void generate(ChunkGenerator.ChunkData chunk,
@@ -45,9 +48,9 @@ public class Level0 {
 
     private static void carveSpawn(ChunkGenerator.ChunkData chunk, int height) {
 
-        for (int x = 4; x < 12; x++) {
-            for (int z = 4; z < 12; z++) {
-                for (int y = 1; y < height - 1; y++) {
+        for (int x = SPAWN_MIN; x < SPAWN_MAX; x++) {
+            for (int z = SPAWN_MIN; z < SPAWN_MAX; z++) {
+                for (int y = FLOOR_CLEARANCE; y < height - 1; y++) {
                     chunk.setBlock(x, y, z, org.bukkit.Material.AIR);
                 }
             }

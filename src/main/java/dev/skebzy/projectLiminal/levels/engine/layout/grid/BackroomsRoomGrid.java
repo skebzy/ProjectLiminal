@@ -7,8 +7,27 @@ public final class BackroomsRoomGrid {
 
     private static final int INTERIOR_MIN = 1;
     private static final int INTERIOR_MAX = BackroomsSectorMath.SECTOR_SIZE - 2;
+    private static final int EDGE_PADDING = 2;
     private static final int MIN_ROOM_SPAN = 6;
     private static final int MAX_SPLIT_DEPTH = 2;
+    private static final int LARGE_ROOM = 18;
+    private static final int MID_ROOM = 14;
+    private static final int MID_SPLIT_CHANCE = 42;
+    private static final int HALL_THIN = 6;
+    private static final int HALL_LONG = 10;
+    private static final int SHAPE_GAP = 4;
+    private static final int MAIN_DOOR_BASE = 4;
+    private static final int MAIN_DOOR_VARIANTS = 2;
+    private static final int SIDE_DOOR_BASE = 3;
+    private static final int SIDE_DOOR_VARIANTS = 2;
+    private static final int DOOR_GAP = 6;
+    private static final int FAR_EXTRA_DOOR = 34;
+    private static final int NEAR_EXTRA_DOOR = 26;
+    private static final int SMALL_OPENING = 4;
+    private static final int LARGE_OPENING = 5;
+    private static final int OPENING_CAP = 6;
+    private static final int SPLIT_CHOICES = 3;
+    private static final int SPLIT_STEP = 6;
     private static final long BOUNDARY_SALT = 0x245A1F3DL;
 
     private BackroomsRoomGrid() {
@@ -97,12 +116,12 @@ public final class BackroomsRoomGrid {
         }
 
         int largerSpan = Math.max(room.width(), room.length());
-        if (largerSpan >= 18) {
+        if (largerSpan >= LARGE_ROOM) {
             return true;
         }
 
-        if (largerSpan >= 14) {
-            return hash(room, sectorX, sectorZ, seed, 13 + depth, 100) < 42;
+        if (largerSpan >= MID_ROOM) {
+            return hash(room, sectorX, sectorZ, seed, 13 + depth, 100) < MID_SPLIT_CHANCE;
         }
 
         return false;
@@ -123,10 +142,10 @@ public final class BackroomsRoomGrid {
 
         int width = room.width();
         int length = room.length();
-        if (width - length >= 4) {
+        if (width - length >= SHAPE_GAP) {
             return true;
         }
-        if (length - width >= 4) {
+        if (length - width >= SHAPE_GAP) {
             return false;
         }
 
@@ -148,7 +167,7 @@ public final class BackroomsRoomGrid {
                                      int depth) {
         int min = room.minX + MIN_ROOM_SPAN;
         int max = room.maxX - MIN_ROOM_SPAN;
-        return selectSplitCoordinate(min, max, room.width(), hash(room, sectorX, sectorZ, seed, 41 + depth, 3));
+        return selectSplitCoordinate(min, max, room.width(), hash(room, sectorX, sectorZ, seed, 41 + depth, SPLIT_CHOICES));
     }
 
     private static int horizontalSplit(LocalRoom room,
@@ -158,7 +177,7 @@ public final class BackroomsRoomGrid {
                                        int depth) {
         int min = room.minZ + MIN_ROOM_SPAN;
         int max = room.maxZ - MIN_ROOM_SPAN;
-        return selectSplitCoordinate(min, max, room.length(), hash(room, sectorX, sectorZ, seed, 47 + depth, 3));
+        return selectSplitCoordinate(min, max, room.length(), hash(room, sectorX, sectorZ, seed, 47 + depth, SPLIT_CHOICES));
     }
 
     private static void drawVerticalWall(boolean[][] openMap, LocalRoom room, int splitX) {
@@ -180,7 +199,7 @@ public final class BackroomsRoomGrid {
                                               int sectorZ,
                                               long seed,
                                               int depth) {
-        int openingCount = internalOpeningCount(room.length(), room, sectorX, sectorZ, seed, depth);
+        int openingCount = internalOpeningCount(room.length());
         carveSpanOpenings(
                 openMap,
                 splitX,
@@ -188,12 +207,7 @@ public final class BackroomsRoomGrid {
                 room.maxZ,
                 openingCount,
                 openingWidth(room.length(), room, sectorX, sectorZ, seed, 61 + depth),
-                true,
-                room,
-                sectorX,
-                sectorZ,
-                seed,
-                71 + depth
+                true
         );
     }
 
@@ -204,7 +218,7 @@ public final class BackroomsRoomGrid {
                                                 int sectorZ,
                                                 long seed,
                                                 int depth) {
-        int openingCount = internalOpeningCount(room.width(), room, sectorX, sectorZ, seed, depth);
+        int openingCount = internalOpeningCount(room.width());
         carveSpanOpenings(
                 openMap,
                 splitZ,
@@ -212,26 +226,16 @@ public final class BackroomsRoomGrid {
                 room.maxX,
                 openingCount,
                 openingWidth(room.width(), room, sectorX, sectorZ, seed, 79 + depth),
-                false,
-                room,
-                sectorX,
-                sectorZ,
-                seed,
-                89 + depth
+                false
         );
     }
 
-    private static int internalOpeningCount(int span,
-                                            LocalRoom room,
-                                            int sectorX,
-                                            int sectorZ,
-                                            long seed,
-                                            int depth) {
-        if (span < 14) {
+    private static int internalOpeningCount(int span) {
+        if (span < MID_ROOM) {
             return 1;
         }
 
-        return span >= 18 ? 2 : 1;
+        return span >= LARGE_ROOM ? 2 : 1;
     }
 
     private static int openingWidth(int span,
@@ -240,8 +244,8 @@ public final class BackroomsRoomGrid {
                                     int sectorZ,
                                     long seed,
                                     long salt) {
-        int base = span >= 18 ? 5 : 4;
-        return Math.min(base + hash(room, sectorX, sectorZ, seed, salt, 2), 6);
+        int base = span >= LARGE_ROOM ? LARGE_OPENING : SMALL_OPENING;
+        return Math.min(base + hash(room, sectorX, sectorZ, seed, salt, 2), OPENING_CAP);
     }
 
     private static void carvePerimeterOpenings(boolean[][] openMap,
@@ -263,20 +267,22 @@ public final class BackroomsRoomGrid {
                                       boolean farSide) {
         int min = INTERIOR_MIN;
         int max = INTERIOR_MAX;
-        int primaryWidth = 4 + boundaryHash(boundaryX, boundaryZ, seed, 101, 2);
+        int primaryWidth = MAIN_DOOR_BASE
+                + boundaryHash(boundaryX, boundaryZ, seed, 101, MAIN_DOOR_VARIANTS);
         int primaryCenter = boundaryOpeningCenter(min, max, primaryWidth, boundaryX, boundaryZ, seed, 107);
 
         carveBoundaryOpening(openMap, boundaryCoordinate, primaryCenter, primaryWidth, verticalBoundary);
 
-        int secondChance = farSide ? 34 : 26;
+        int secondChance = farSide ? FAR_EXTRA_DOOR : NEAR_EXTRA_DOOR;
         if (spanHash(boundaryX, boundaryZ, seed, 113, 100) >= secondChance) {
             return;
         }
 
-        int secondaryWidth = 3 + boundaryHash(boundaryX, boundaryZ, seed, 127, 2);
+        int secondaryWidth = SIDE_DOOR_BASE
+                + boundaryHash(boundaryX, boundaryZ, seed, 127, SIDE_DOOR_VARIANTS);
         int secondaryCenter = boundaryOpeningCenter(min, max, secondaryWidth, boundaryX, boundaryZ, seed, 131);
 
-        if (Math.abs(primaryCenter - secondaryCenter) < 6) {
+        if (Math.abs(primaryCenter - secondaryCenter) < DOOR_GAP) {
             return;
         }
 
@@ -322,16 +328,11 @@ public final class BackroomsRoomGrid {
                                           int spanMax,
                                           int count,
                                           int width,
-                                          boolean verticalWall,
-                                          LocalRoom room,
-                                          int sectorX,
-                                          int sectorZ,
-                                          long seed,
-                                          long salt) {
-        int[] centers = distributedCenters(spanMin + 2, spanMax - 2, count);
+                                          boolean verticalWall) {
+        int[] centers = distributedCenters(spanMin + EDGE_PADDING, spanMax - EDGE_PADDING, count);
 
         for (int index = 0; index < centers.length; index++) {
-            int openingCenter = clamp(centers[index], spanMin + 2, spanMax - 2);
+            int openingCenter = clamp(centers[index], spanMin + EDGE_PADDING, spanMax - EDGE_PADDING);
             int start = openingCenter - ((width - 1) / 2);
 
             for (int offset = 0; offset < width; offset++) {
@@ -367,11 +368,11 @@ public final class BackroomsRoomGrid {
 
     private static int selectSplitCoordinate(int min, int max, int span, int variant) {
         int center = centerOf(min, max);
-        if (span < 18) {
+        if (span < LARGE_ROOM) {
             return clamp(center, min, max);
         }
 
-        int offset = Math.max(1, span / 6);
+        int offset = Math.max(1, span / SPLIT_STEP);
         if (variant == 0) {
             return clamp(center - offset, min, max);
         }
@@ -489,7 +490,7 @@ public final class BackroomsRoomGrid {
         public boolean hallwayLike() {
             int smaller = Math.min(width(), length());
             int larger = Math.max(width(), length());
-            return smaller <= 6 && larger >= 10;
+            return smaller <= HALL_THIN && larger >= HALL_LONG;
         }
     }
 
