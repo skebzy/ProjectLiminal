@@ -11,8 +11,7 @@ public class PillarDecorator {
     private static final int REGION_PADDING = 4;
     private static final int PILLAR_ROLL = 100;
     private static final int PILLAR_RATE = 24;
-    private static final int MIN_WIDTH = 1;
-    private static final int WIDTH_ROLL = 2;
+    private static final int SINGLE_PILLAR_RATE = 12;
     private static final int INTERIOR_MIN = 1;
     private static final int INTERIOR_MAX = CHUNK_SIZE - 2;
     private static final int FLOOR_Y = 1;
@@ -57,8 +56,8 @@ public class PillarDecorator {
 
                 int localX = worldX - baseX;
                 int localZ = worldZ - baseZ;
-                int width = MIN_WIDTH + hash(regionX, regionZ, seed, 13, WIDTH_ROLL);
-                boolean extendX = hash(regionX, regionZ, seed, 17, WIDTH_ROLL) == 0;
+                int width = pillarWidth(regionX, regionZ, seed);
+                boolean extendX = hash(regionX, regionZ, seed, 17, 2) == 0;
 
                 if (intersectsSpawnSafety(chunkX, chunkZ, localX, localZ, width, extendX)) {
                     continue;
@@ -124,6 +123,14 @@ public class PillarDecorator {
         }
 
         return true;
+    }
+
+    private static int pillarWidth(int regionX, int regionZ, long seed) {
+        if (hash(regionX, regionZ, seed, 13, 100) < SINGLE_PILLAR_RATE) {
+            return 1;
+        }
+
+        return 2 + hash(regionX, regionZ, seed, 29, 2);
     }
 
     private static int hash(int x, int z, long seed, long salt, int bound) {

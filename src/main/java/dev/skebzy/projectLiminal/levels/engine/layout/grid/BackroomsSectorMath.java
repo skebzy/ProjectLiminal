@@ -10,6 +10,9 @@ public final class BackroomsSectorMath {
     public static final int MAX_DIVIDER_OFFSET = SECTOR_SIZE - 7;
     private static final int DIVIDER_RANGE = MAX_DIVIDER_OFFSET - MIN_DIVIDER_OFFSET + 1;
     private static final int MIX_SHIFT = 33;
+    private static final long NOISE_SALT = 0x165667919E3779F9L;
+    private static final double HASH_NOISE_WEIGHT = 0.08D;
+    private static final long HASH_NOISE_SPAN = 1_000_000L;
     private static final long X_MIX = 0x9E3779B97F4A7C15L;
     private static final long Z_MIX = 0xC2B2AE3D27D4EB4FL;
     private static final long FIRST_MIX_MULTIPLIER = 0xFF51AFD7ED558CCDL;
@@ -72,11 +75,18 @@ public final class BackroomsSectorMath {
         long mixed = seed ^ salt;
         mixed ^= x * X_MIX;
         mixed ^= z * Z_MIX;
+        mixed += noiseOffset(x, z, seed, salt);
         mixed ^= (mixed >>> MIX_SHIFT);
         mixed *= FIRST_MIX_MULTIPLIER;
         mixed ^= (mixed >>> MIX_SHIFT);
         mixed *= SECOND_MIX_MULTIPLIER;
         mixed ^= (mixed >>> MIX_SHIFT);
         return (int) mixed;
+    }
+
+    private static long noiseOffset(int x, int z, long seed, long salt) {
+        double noise = NoiseField.hashNoise(x + (int) salt, z - (int) salt, seed ^ NOISE_SALT);
+        double centered = noise - 0.5D;
+        return Math.round(centered * HASH_NOISE_WEIGHT * HASH_NOISE_SPAN);
     }
 }
